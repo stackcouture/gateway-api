@@ -1,0 +1,38 @@
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+  name: blue-deployment
+  namespace: web-app
+spec: 
+  replicas: 2
+  selector: 
+    matchLabels: 
+      app: blue-app
+  template: 
+    metadata: 
+      labels: 
+        app: blue-app
+    spec:
+      containers: 
+      - name: blue-container
+        image: gcr.io/google-samples/hello-app:1.0 
+        ports: 
+        - containerPort: 8080
+        env:
+        - name: GREETING
+          value: "Hello from the Blue App!"
+
+---
+apiVersion: v1 
+kind: Service 
+metadata: 
+  name: blue-svc
+  namespace: web-app
+spec: 
+  selector: 
+    app: blue-app
+  ports: 
+  - name: http 
+    port: 80
+    targetPort: 8080 
+    protocol: TCP 
