@@ -120,3 +120,17 @@ The controller enforces traffic behavior.
 Ingress collapses these responsibilities into a single resource, which does not scale in real-world, multi-team environments.
 ```
 ---
+### TLS Handling
+
+- TLS certificates are stored as **Kubernetes Secrets**
+- HTTPS termination occurs at:
+  - **NGINX Ingress Controller** when using the Ingress API
+  - **Gateway** when using the Gateway API
+- Cross-namespace access to TLS secrets is **explicitly permitted** using `ReferenceGrant`
+- No implicit secret sharing
+- No annotation-based hacks
+
+```text
+TLS ownership and access are clearly defined, making the setup secure, auditable and production-aligned.
+```
+---
