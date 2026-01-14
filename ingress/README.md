@@ -29,20 +29,10 @@ This project demonstrates **modern Kubernetes traffic management**:
 - Blue/Green application deployments
 - HTTP/HTTPS routing
 - TLS termination at gateway/ingress
-- Cross-namespace secret access using `ReferenceGrant` (Gateway API)
 - NodePort for local testing (can be replaced with LoadBalancer/MetalLB for production)
 
 ---
 
-## Architecture Diagram
-
-![Gateway/Ingress Architecture](gateway-ingress.png)
-
-
-```
-- **Ingress:** Routes traffic via path-based rules to services
-```
----
 
 ## Prerequisites
 - Kubernetes cluster (v1.26+ recommended)
