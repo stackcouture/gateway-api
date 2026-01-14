@@ -191,3 +191,10 @@ If this setup were hardened for real-world use:
 
 This is the difference between a demo that works and a platform that survives production.
 ---
+## Key Takeaways
+
+- **Ingress** is simple and easy to adopt, but fundamentally limited
+- **Gateway API** introduces clear ownership boundaries that scale across real teams
+- Gateway API is the **long-term replacement**, not a side feature
+- Understanding **both** is mandatory for modern Kubernetes engineers
+---
