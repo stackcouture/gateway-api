@@ -56,13 +56,11 @@ This project demonstrates **modern Kubernetes traffic management**:
 
 ![Gateway/Ingress Architecture](gateway-ingress.png)
 
-/blue → blue-svc → blue deployment
-/green → green-svc → green deployment
-```
 
+```
 - **Ingress:** Routes traffic via path-based rules to services
 - **Gateway API:** Uses Gateway, GatewayClass, HTTPRoute/HTTPS Route for the same
-
+```
 ---
 
 ## Prerequisites
