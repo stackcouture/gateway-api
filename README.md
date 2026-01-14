@@ -53,6 +53,9 @@ This project demonstrates **modern Kubernetes traffic management**:
 ---
 
 ## Architecture Diagram
+
+![Gateway/Ingress Architecture](gateway-ingress.png)
+
 ```text
        +----------------+
        |     Client     |
