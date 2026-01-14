@@ -56,18 +56,6 @@ This project demonstrates **modern Kubernetes traffic management**:
 
 ![Gateway/Ingress Architecture](gateway-ingress.png)
 
-```text
-       +----------------+
-       |     Client     |
-       +----------------+
-         |        |
-   HTTP :30080  HTTPS :30081
-         |        |
-         v        v
-+--------------------------+
-| NGINX Gateway / Ingress |
-+--------------------------+
-
 /blue → blue-svc → blue deployment
 /green → green-svc → green deployment
 ```
