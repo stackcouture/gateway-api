@@ -388,11 +388,14 @@ curl -k https://gateway.web.k8s.local:30081/green
 ```
 
 ## Troubleshooting
+```text
 ADDRESS empty → NodePort does not populate ADDRESS, PROGRAMMED=True confirms working Gateway.
 
 HTTPRoute not accepted → check sectionName, parentRefs.namespace, TLS secret, and ReferenceGrant.
 
 TLS listener fails → ensure secret exists and is accessible via ReferenceGrant.
+```
+---
 
 Cleanup
 ```
