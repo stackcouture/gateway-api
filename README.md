@@ -106,3 +106,14 @@ The controller enforces traffic behavior.
 - Clean Blue/Green routing without annotations
 
 ---
+### Role Separation (This Matters in Real Teams)
+
+| Role           | Resource     | Responsibility                         |
+|----------------|--------------|----------------------------------------|
+| Infra Provider | GatewayClass | Controller selection                   |
+| Platform Team  | Gateway      | Entry points, TLS, listeners           |
+| App Team       | HTTPRoute    | Application-level routing rules        |
+
+**This is the core advantage of Gateway API over Ingress.**  
+Ingress collapses these responsibilities into a single resource, which does not scale in real-world, multi-team environments.
+---
