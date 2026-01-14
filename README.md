@@ -147,96 +147,412 @@ kubectl get pods -n web-app
 kubectl get svc -n web-app
 ```
 ---
+### Step 3: Deploy Blue App
 
+`blue-deployment.yaml`:
 
-# Self Signed Certificate
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+```yaml
+apiVersion: apps/v1 
+kind: Deployment 
+metadata:
+  name: blue-deployment
+  namespace: web-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: blue-app
+  template:
+    metadata:
+      labels:
+        app: blue-app
+    spec:
+      containers:
+      - name: blue-container
+        image: gcr.io/google-samples/hello-app:1.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GREETING
+          value: "Hello from the Blue App!"
+
+---
+apiVersion: v1 
+kind: Service 
+metadata:
+  name: blue-svc
+  namespace: web-app
+spec:
+  selector:
+    app: blue-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+```
+```
+kubectl apply -f blue-deployment.yaml
+kubectl get pods -n web-app
+kubectl get svc -n web-app
+```
+---
+### Step 4: Create Self-Signed TLS Secret
+```
+   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout tls.key -out tls.crt \
   -subj "/CN=gateway.web.k8s.local" \
   -addext "subjectAltName = DNS:gateway.web.k8s.local"
+```
 
-# Install helm 
+`secret.yaml`:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-tls-secret
+  namespace: web-app
+type: kubernetes.io/tls
+stringData:
+  tls.crt: |
+    <paste tls.crt here>
+  tls.key: |
+    <paste tls.key here>
+```
+```
+kubectl apply -f secret.yaml
+kubectl get secret -n web-app
+```
+
+### Step 5: Install Helm & NGINX Ingress Controller
+```
 wget https://get.helm.sh/helm-v3.10.3-linux-amd64.tar.gz
 tar -zxf helm-v3.10.3-linux-amd64.tar.gz
 mv linux-amd64/helm /usr/local/bin
+helm version
+```
 
-# Setup the Ingress-controller
-helm install ingress-nginx \
-    --set controller.service.type=NodePort \
-    --set controller.service.nodePorts.http=30082 \
-    --set controller.service.nodePorts.https=30443 \
-    --repo https://kubernetes.github.io/ingress-nginx \
-    ingress-nginx
+## Install NGINX Ingress Controller (NodePort):
 
+```
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install ingress-nginx ingress-nginx/ingress-nginx \
+  --set controller.service.type=NodePort \
+  --set controller.service.nodePorts.http=30082 \
+  --set controller.service.nodePorts.https=30443
+```
+---
 
-# Add an entry to /etc/hosts for local testing
+### Step 6: Create Ingress Resource
+
+`web-ingress.yaml`:
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+  namespace: web-app
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - gateway.web.k8s.local
+    secretName: web-tls-secret
+  rules:
+  - host: gateway.web.k8s.local
+    http:
+      paths:
+      - path: /blue
+        pathType: Prefix
+        backend:
+          service:
+            name: blue-svc
+            port:
+              number: 80
+      - path: /green
+        pathType: Prefix
+        backend:
+          service:
+            name: green-svc
+            port:
+              number: 80
+```
+```
+kubectl apply -f web-ingress.yaml
+kubectl get ingress -n web-app
+```
+---
+
+### Step 7: Test Local Access
+
+Add host entry:
+```
 echo "$(kubectl get ingress web -n web-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}') gateway.web.k8s.local" | sudo tee -a /etc/hosts
-
-# Test HTTP access
-curl -k http://gateway.web.k8s.local/blue
-curl -k https://gateway.web.k8s.local/blue
-
+```
+```
+Test routes:
 
 curl -k http://gateway.web.k8s.local/green
 curl -k https://gateway.web.k8s.local/green
+curl -k http://gateway.web.k8s.local/blue
+curl -k https://gateway.web.k8s.local/blue
+```
+---
 
+# Part 2: Deploy with Gateway API (NGINX Gateway Fabric)
 
-
-# Install Gateway API Resources
-kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.5.1" | kubectl apply -f -
-
-# Verify installation
+### Step 1: Install Gateway API CRDs
+```
+kubectl kustomize \
+  "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.5.1" \
+  | kubectl apply -f -
 kubectl get crd | grep gateway
-
-## Configure NGINX Gateway Fabric
-
-# Deploy NGINX Gateway Fabric CRDs
+```
+---
+### Step 2: Install NGINX Gateway Fabric CRDs
+```
 kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v1.6.1/deploy/crds.yaml
+```
+---
 
-# Deploy NGINX Gateway Fabric
+### Step 3: Deploy NGINX Gateway Fabric Controller
+```
 kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v1.6.1/deploy/nodeport/deploy.yaml
-
-# Verify the deployment
 kubectl get pods -n nginx-gateway
+```
+---
 
-
-# Update the service to expose specific nodePort values
+### Step 4: Expose Fixed NodePort Values
+```
 kubectl patch svc nginx-gateway -n nginx-gateway --type='json' -p='[
   {"op": "replace", "path": "/spec/ports/0/nodePort", "value": 30080},
   {"op": "replace", "path": "/spec/ports/1/nodePort", "value": 30081}
 ]'
-
-# Verify the service has been updated
 kubectl get svc -n nginx-gateway nginx-gateway
+```
+---
 
+### Step 5: Create GatewayClass
 
-## Create GatewayClass and Gateway Resources
+`gateway-class.yaml`:
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: nginx
+spec:
+  controllerName: gateway.nginx.org/nginx-gateway-controller
+```
+```
+kubectl apply -f gateway-class.yaml
+```
+---
 
+### Step 6: Create Gateway
+
+`gateway.yaml`:
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx-gateway
+  namespace: nginx-gateway
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - name: http
+    port: 80
+    protocol: HTTP
+    hostname: gateway.web.k8s.local
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: https
+    port: 443
+    protocol: HTTPS
+    hostname: gateway.web.k8s.local
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: web-tls-secret
+        namespace: web-app
+    allowedRoutes:
+      namespaces:
+        from: All
+```
+```
+kubectl apply -f gateway.yaml
+```
+---
+
+### Step 7: Create HTTP Routes
+
+`http-route.yaml`:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: web-route
+  namespace: web-app
+spec:
+  parentRefs:
+  - name: nginx-gateway
+    namespace: nginx-gateway
+    sectionName: http
+  hostnames:
+  - gateway.web.k8s.local
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /green
+    backendRefs:
+    - name: green-svc
+      port: 80
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /blue
+    backendRefs:
+    - name: blue-svc
+      port: 80
+```
+```
+kubectl apply -f http-route.yaml
+```
+---
+
+### Step 8: Create HTTPS Routes
+
+`https-route.yaml`:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: web-route-https
+  namespace: web-app
+spec:
+  parentRefs:
+  - name: nginx-gateway
+    namespace: nginx-gateway
+    sectionName: https
+  hostnames:
+  - gateway.web.k8s.local
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /green
+    backendRefs:
+    - name: green-svc
+      port: 80
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /blue
+    backendRefs:
+    - name: blue-svc
+      port: 80
+```
+```
+kubectl apply -f https-route.yaml
+```
+
+### Step 9: Allow Cross-Namespace TLS Access
+
+`reference-grant.yaml`:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-gateway-to-web-app-secrets
+  namespace: web-app
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: nginx-gateway
+  to:
+  - group: ""
+    kind: Secret
+    name: web-tls-secret
+```
+```
+kubectl apply -f reference-grant.yaml
+```
+---
+
+### Step 10: Verification
+```
 kubectl get gateway -n nginx-gateway
 kubectl get httproute -n web-app
-
-
-## Verify the Gateway API Configuration
-# Check the Gateway status
-kubectl describe gateway nginx-gateway -n nginx-gateway
-
-# Check the HTTPRoute status
-kubectl describe httproute web-route -n web-app
-
-# Check if the HTTPRoute is properly bound to the Gateway
+```
+```
 kubectl get httproute web-route -n web-app -o jsonpath='{.status.parents[0].conditions[?(@.type=="Accepted")].status}'
 kubectl get httproute web-route-https -n web-app -o jsonpath='{.status.parents[0].conditions[?(@.type=="Accepted")].status}'
+```
+Expected: True
+---
 
+### Step 11: Testing
 
+```
+HTTP:
+curl -H "Host: gateway.web.k8s.local" http://$NODE_IP:30080/blue
+curl -H "Host: gateway.web.k8s.local" http://$NODE_IP:30080/green
+```
+---
 
-## Test the Gateway API Configuration
-# Test the / endpoint
-curl -v -H "Host: gateway.web.k8s.local" http://$NODE_IP:30080/blue
-curl -v -H "Host: gateway.web.k8s.local" http://$NODE_IP:30080/green
+```
+HTTPS:
 
-# Add the entry in /etc/hosts
-# ${NODE_IP}   gateway.web.k8s.local
+# Add host entry
+echo "$NODE_IP gateway.web.k8s.local" | sudo tee -a /etc/hosts
 
-# Test the / endpoint
-curl -v -k https://gateway.web.k8s.local:30081/blue
-curl -v -k https://gateway.web.k8s.local:30081/green 
+curl -k https://gateway.web.k8s.local:30081/blue
+curl -k https://gateway.web.k8s.local:30081/green
+```
+
+## Troubleshooting
+ADDRESS empty → NodePort does not populate ADDRESS, PROGRAMMED=True confirms working Gateway.
+
+HTTPRoute not accepted → check sectionName, parentRefs.namespace, TLS secret, and ReferenceGrant.
+
+TLS listener fails → ensure secret exists and is accessible via ReferenceGrant.
+
+Cleanup
+```
+kubectl delete -f web-ingress.yaml
+kubectl delete -f blue-deployment.yaml
+kubectl delete -f green-deployment.yaml
+kubectl delete ns web-app
+```
+
+Gateway API cleanup:
+
+``` 
+kubectl delete -f reference-grant.yaml
+kubectl delete -f https-route.yaml
+kubectl delete -f http-route.yaml
+kubectl delete -f gateway.yaml
+kubectl delete -f gateway-class.yaml
+kubectl delete -f nodeport/deploy.yaml
+kubectl delete -f crds.yaml
+```
+
+#### Notes
+
+NodePort is for demo; replace with LoadBalancer or MetalLB for production.
+
+Gateway API provides better separation of concerns, cross-namespace routing, and extensibility compared to Ingress.
+
+TLS termination happens at the gateway/ingress level.
