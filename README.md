@@ -88,3 +88,21 @@ Ingress resources are declarative only.
 The controller enforces traffic behavior.
 ```
 ---
+### Key Notes
+
+- Ingress resources are **purely declarative**
+- The **NGINX Ingress Controller** is responsible for enforcing all traffic behavior
+- TLS is terminated at the Ingress controller using the configured Kubernetes Secret
+- Routing decisions are made based on request paths and defined backend services
+---
+
+### Part 2: Gateway API Implementation (NGINX Gateway Fabric)
+#### What is demonstrated
+
+- GatewayClass, Gateway, HTTPRoute separation
+- Multiple listeners (HTTP + HTTPS)
+- TLS termination at Gateway
+- Cross-namespace TLS access using ReferenceGrant
+- Clean Blue/Green routing without annotations
+
+---
