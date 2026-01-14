@@ -165,7 +165,7 @@ Ingress is fine for **simple applications**.
 Gateway API is built for **platform-scale engineering**.
 ```
 ---
-## Known Limitations (Being Honest)
+## Known Limitations
 
 This demo is **intentionally not production-ready**:
 
@@ -174,5 +174,20 @@ This demo is **intentionally not production-ready**:
 - No mTLS between services
 - No metrics, logs, or distributed tracing configured
 
-Anyone claiming this is production-ready is lying.
+---
+## Production Improvements
+
+If this setup were hardened for real-world use:
+
+- Replace **NodePort** with a cloud-native `LoadBalancer`
+- Use **cert-manager** for automated certificate issuance and rotation
+- Enable **mTLS** where service-to-service trust is required
+- Add full observability:
+  - Metrics (Prometheus)
+  - Centralized logging
+  - Distributed tracing
+- Manage manifests using **Helm** or **Kustomize**
+- Deploy and promote changes using **GitOps** (Argo CD)
+
+This is the difference between a demo that works and a platform that survives production.
 ---
