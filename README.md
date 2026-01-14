@@ -115,5 +115,8 @@ The controller enforces traffic behavior.
 | App Team       | HTTPRoute    | Application-level routing rules        |
 
 **This is the core advantage of Gateway API over Ingress.**  
+---
+```text
 Ingress collapses these responsibilities into a single resource, which does not scale in real-world, multi-team environments.
+```
 ---
