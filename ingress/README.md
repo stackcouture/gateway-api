@@ -13,7 +13,7 @@ Both setups route traffic to **Blue** and **Green** deployments and demonstrate 
 - [Overview](#overview)
 - [Architecture Diagram](#architecture-diagram)
 - [Prerequisites](#prerequisites)
-- [Part 1: Deploy Sample Web App with NGINX Ingress](#part-1-deploy-sample-web-app-with-nginx-ingress)
+- [Deploy Sample Web App with NGINX Ingress](#deploy-sample-web-app-with-nginx-ingress)
   - [Step 1: Create Namespace](#step-1-create-namespace)
   - [Step 2: Deploy Green App](#step-2-deploy-green-app)
   - [Step 3: Deploy Blue App](#step-3-deploy-blue-app)
@@ -42,7 +42,6 @@ This project demonstrates **modern Kubernetes traffic management**:
 
 ```
 - **Ingress:** Routes traffic via path-based rules to services
-- **Gateway API:** Uses Gateway, GatewayClass, HTTPRoute/HTTPS Route for the same
 ```
 ---
 
@@ -55,7 +54,7 @@ This project demonstrates **modern Kubernetes traffic management**:
 
 ---
 
-# Part 1: Deploy Sample Web App with NGINX Ingress
+# Deploy Sample Web App with NGINX Ingress
 
 ### Step 1: Create Namespace
 

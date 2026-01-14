@@ -11,22 +11,167 @@ Both setups route traffic to **Blue** and **Green** deployments and demonstrate 
 ## Table of Contents
 
 - [Deploy with Gateway API](#deploy-with-gateway-api)
-  - [Step 1: Install Gateway API CRDs](#step-1-install-gateway-api-crds)
-  - [Step 2: Install NGINX Gateway Fabric CRDs](#step-2-install-nginx-gateway-fabric-crds)
-  - [Step 3: Deploy NGINX Gateway Fabric Controller](#step-3-deploy-nginx-gateway-fabric-controller)
-  - [Step 4: Expose Fixed NodePort Values](#step-4-expose-fixed-nodeport-values)
-  - [Step 5: Create GatewayClass](#step-5-create-gatewayclass)
-  - [Step 6: Create Gateway](#step-6-create-gateway)
-  - [Step 7: Create HTTP Routes](#step-7-create-http-routes)
-  - [Step 8: Create HTTPS Routes](#step-8-create-https-routes)
-  - [Step 9: Allow Cross-Namespace TLS Access](#step-9-allow-cross-namespace-tls-access)
-  - [Step 10: Verification](#step-10-verification)
-  - [Step 11: Testing](#step-11-testing)
+  - [Step 1: Create Namespace](#step-1-create-namespace)
+  - [Step 2: Deploy Green App](#step-2-deploy-green-app)
+  - [Step 3: Deploy Blue App](#step-3-deploy-blue-app)
+  - [Step 4: Create Self-Signed TLS Secret](#step-4-create-self-signed-tls-secret)
+  - [Step 5: Install Gateway API CRDs](#step-5-install-gateway-api-crds)
+  - [Step 6: Install NGINX Gateway Fabric CRDs](#step-6-install-nginx-gateway-fabric-crds)
+  - [Step 7: Deploy NGINX Gateway Fabric Controller](#step-7-deploy-nginx-gateway-fabric-controller)
+  - [Step 8: Expose Fixed NodePort Values](#step-8-expose-fixed-nodeport-values)
+  - [Step 9: Create GatewayClass](#step-9-create-gatewayclass)
+  - [Step 10: Create Gateway](#step-10-create-gateway)
+  - [Step 11: Create HTTP Routes](#step-11-create-http-routes)
+  - [Step 12: Create HTTPS Routes](#step-12-create-https-routes)
+  - [Step 13: Allow Cross-Namespace TLS Access](#step-13-allow-cross-namespace-tls-access)
+  - [Step 14: Verification](#step-14-verification)
+  - [Step 15: Testing](#step-15-testing)
 
 
   #  Deploy with Gateway API (NGINX Gateway Fabric)
 
-### Step 1: Install Gateway API CRDs
+### Step 1: Create Namespace
+
+`namespace.yaml`:
+
+```yaml
+apiVersion: v1 
+kind: Namespace 
+metadata: 
+  name: web-app
+```
+```
+kubectl apply -f namespace.yaml
+kubectl get ns
+```
+### Step 2: Deploy Green App
+`green-deployment.yaml`:
+```yaml
+apiVersion: apps/v1 
+kind: Deployment 
+metadata:
+  name: green-deployment
+  namespace: web-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: green-app
+  template:
+    metadata:
+      labels:
+        app: green-app
+    spec:
+      containers:
+      - name: green-container
+        image: gcr.io/google-samples/hello-app:1.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GREETING
+          value: "Hello from the Green App!"
+
+---
+apiVersion: v1 
+kind: Service 
+metadata:
+  name: green-svc
+  namespace: web-app
+spec:
+  selector:
+    app: green-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+```
+```
+kubectl apply -f green-deployment.yaml
+kubectl get pods -n web-app
+kubectl get svc -n web-app
+```
+---
+### Step 3: Deploy Blue App
+
+`blue-deployment.yaml`:
+
+```yaml
+apiVersion: apps/v1 
+kind: Deployment 
+metadata:
+  name: blue-deployment
+  namespace: web-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: blue-app
+  template:
+    metadata:
+      labels:
+        app: blue-app
+    spec:
+      containers:
+      - name: blue-container
+        image: gcr.io/google-samples/hello-app:1.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GREETING
+          value: "Hello from the Blue App!"
+
+---
+apiVersion: v1 
+kind: Service 
+metadata:
+  name: blue-svc
+  namespace: web-app
+spec:
+  selector:
+    app: blue-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+```
+```
+kubectl apply -f blue-deployment.yaml
+kubectl get pods -n web-app
+kubectl get svc -n web-app
+```
+---
+### Step 4: Create Self-Signed TLS Secret
+```
+   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout tls.key -out tls.crt \
+  -subj "/CN=gateway.web.k8s.local" \
+  -addext "subjectAltName = DNS:gateway.web.k8s.local"
+```
+
+`secret.yaml`:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-tls-secret
+  namespace: web-app
+type: kubernetes.io/tls
+stringData:
+  tls.crt: |
+    <paste tls.crt here>
+  tls.key: |
+    <paste tls.key here>
+```
+```
+kubectl apply -f secret.yaml
+kubectl get secret -n web-app
+```
+---
+
+### Step 5: Install Gateway API CRDs
 ```
 kubectl kustomize \
   "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.5.1" \
@@ -34,20 +179,20 @@ kubectl kustomize \
 kubectl get crd | grep gateway
 ```
 ---
-### Step 2: Install NGINX Gateway Fabric CRDs
+### Step 6: Install NGINX Gateway Fabric CRDs
 ```
 kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v1.6.1/deploy/crds.yaml
 ```
 ---
 
-### Step 3: Deploy NGINX Gateway Fabric Controller
+### Step 7: Deploy NGINX Gateway Fabric Controller
 ```
 kubectl apply -f https://raw.githubusercontent.com/nginx/nginx-gateway-fabric/v1.6.1/deploy/nodeport/deploy.yaml
 kubectl get pods -n nginx-gateway
 ```
 ---
 
-### Step 4: Expose Fixed NodePort Values
+### Step 8: Expose Fixed NodePort Values
 ```
 kubectl patch svc nginx-gateway -n nginx-gateway --type='json' -p='[
   {"op": "replace", "path": "/spec/ports/0/nodePort", "value": 30080},
@@ -57,7 +202,7 @@ kubectl get svc -n nginx-gateway nginx-gateway
 ```
 ---
 
-### Step 5: Create GatewayClass
+### Step 9: Create GatewayClass
 
 `gateway-class.yaml`:
 ```yaml
@@ -73,7 +218,7 @@ kubectl apply -f gateway-class.yaml
 ```
 ---
 
-### Step 6: Create Gateway
+### Step 10: Create Gateway
 
 `gateway.yaml`:
 ```yaml
@@ -111,7 +256,7 @@ kubectl apply -f gateway.yaml
 ```
 ---
 
-### Step 7: Create HTTP Routes
+### Step 11: Create HTTP Routes
 
 `http-route.yaml`:
 
@@ -149,7 +294,7 @@ kubectl apply -f http-route.yaml
 ```
 ---
 
-### Step 8: Create HTTPS Routes
+### Step 12: Create HTTPS Routes
 
 `https-route.yaml`:
 
@@ -186,7 +331,7 @@ spec:
 kubectl apply -f https-route.yaml
 ```
 
-### Step 9: Allow Cross-Namespace TLS Access
+### Step 13: Allow Cross-Namespace TLS Access
 
 `reference-grant.yaml`:
 
@@ -211,7 +356,7 @@ kubectl apply -f reference-grant.yaml
 ```
 ---
 
-### Step 10: Verification
+### Step 14: Verification
 ```
 kubectl get gateway -n nginx-gateway
 kubectl get httproute -n web-app
@@ -223,7 +368,7 @@ kubectl get httproute web-route-https -n web-app -o jsonpath='{.status.parents[0
 Expected: True
 ---
 
-### Step 11: Testing
+### Step 15: Testing
 
 ```
 HTTP:
