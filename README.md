@@ -70,7 +70,7 @@ This project demonstrates **modern Kubernetes traffic management**:
 ```
 
 - **Ingress:** Routes traffic via path-based rules to services
-- **Gateway API:** Uses Gateway, GatewayClass, HTTPRoute/HTTPSRoute for the same
+- **Gateway API:** Uses Gateway, GatewayClass, HTTPRoute/HTTPS Route for the same
 
 ---
 
@@ -94,7 +94,8 @@ apiVersion: v1
 kind: Namespace 
 metadata: 
   name: web-app
-
+```
+```
 kubectl apply -f namespace.yaml
 kubectl get ns
 ```
