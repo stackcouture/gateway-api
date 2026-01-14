@@ -165,3 +165,14 @@ Ingress is fine for **simple applications**.
 Gateway API is built for **platform-scale engineering**.
 ```
 ---
+## Known Limitations (Being Honest)
+
+This demo is **intentionally not production-ready**:
+
+- Uses **NodePort** instead of `LoadBalancer`
+- No authentication, WAF, or rate limiting
+- No mTLS between services
+- No metrics, logs, or distributed tracing configured
+
+Anyone claiming this is production-ready is lying.
+---
