@@ -1,12 +1,69 @@
-# Kubernetes Blue/Green Sample Web Application Deployment
+# Kubernetes Ingress vs Gateway API  
+## Blue/Green Traffic Routing with NGINX Controllers
 
-This repository demonstrates how to deploy a **sample web application** in Kubernetes using two approaches:
+This repository demonstrates **production-aligned HTTP/HTTPS traffic routing in Kubernetes** using two approaches:
 
-1. **NGINX Ingress Controller**  
-2. **Kubernetes Gateway API with NGINX Gateway Fabric**
+- **NGINX Ingress Controller (Ingress API)**
+- **NGINX Gateway Fabric (Kubernetes Gateway API)**
 
-Both setups route traffic to **Blue** and **Green** deployments and demonstrate **HTTP/HTTPS routing with TLS**, including cross-namespace secret access.
+The goal is to compare **Ingress and Gateway API side-by-side** using a **Blue/Green deployment model**, TLS termination, and real request validation via `curl`.
 
+> **This is not theory.** Every manifest in this repository is runnable and verifiable.
 
+---
 
+## Why This Project Exists
 
+Ingress is widely used but increasingly **limited**:
+
+- HTTP/HTTPS only
+- Heavy reliance on annotations
+- Poor separation of infrastructure vs application ownership
+
+Gateway API is the **evolution path**:
+
+- Multi-protocol support (L4–L7)
+- Clear role separation (`GatewayClass` / `Gateway` / `Routes`)
+- Safer multi-team delegation
+- Native traffic shaping
+
+This repository answers one question:
+
+> **“Why would I move from Ingress to Gateway API in real clusters?”**
+
+---
+
+## Architecture Overview
+![Gateway/Ingress Architecture](gateway-ingress.png)
+
+TLS is terminated at the **Ingress Controller / Gateway**, not at application pods.
+
+---
+## Repository Structure
+```bash 
+.
+├── ingress/
+│   ├── namespace.yaml
+│   ├── blue-deployment.yaml
+│   ├── green-deployment.yaml
+│   ├── tls-secret.yaml
+│   └── web-ingress.yaml
+│
+├── gateway-api/
+|   ├── namespace.yaml
+│   ├── blue-deployment.yaml
+│   ├── green-deployment.yaml
+│   ├── tls-secret.yaml
+│   ├── gatewayclass.yaml
+│   ├── gateway.yaml
+│   ├── httproute-http.yaml
+│   ├── httproute-https.yaml
+│   └── referencegrant.yaml
+│
+├── diagrams/
+│   └── gateway-ingress.png
+│
+└── README.md
+
+```
+---
