@@ -134,3 +134,18 @@ Ingress collapses these responsibilities into a single resource, which does not 
 TLS ownership and access are clearly defined, making the setup secure, auditable and production-aligned.
 ```
 ---
+### Validation (Real Proof)
+
+#### HTTP
+
+```bash
+curl -H "Host: gateway.web.k8s.local" http://<NODE_IP>:30080/green
+curl -H "Host: gateway.web.k8s.local" http://<NODE_IP>:30080/blue
+```
+
+#### HTTPS
+```bash
+curl -k https://gateway.web.k8s.local:30081/green
+curl -k https://gateway.web.k8s.local:30081/blue
+```
+---
