@@ -419,8 +419,11 @@ kubectl delete -f crds.yaml
 
 #### Notes
 
+```text
 NodePort is for demo; replace with LoadBalancer or MetalLB for production.
 
 Gateway API provides better separation of concerns, cross-namespace routing, and extensibility compared to Ingress.
 
 TLS termination happens at the gateway/ingress level.
+```
+---
