@@ -149,3 +149,19 @@ curl -k https://gateway.web.k8s.local:30081/green
 curl -k https://gateway.web.k8s.local:30081/blue
 ```
 ---
+## Ingress vs Gateway API (Reality Check)
+
+| Feature            | Ingress                | Gateway API          |
+|--------------------|------------------------|----------------------|
+| Protocols          | HTTP / HTTPS only      | L4 – L7              |
+| Traffic Splitting  | ❌                     | ✅                   |
+| Role Separation    | ❌                     | ✅                   |
+| Multi-Namespace    | ⚠️ Limited / Hacky     | ✅ Explicit           |
+| Extensibility      | Annotations            | CRD-native           |
+| Future-proof       | ❌                     | ✅                   |
+
+```text 
+Ingress is fine for **simple applications**.  
+Gateway API is built for **platform-scale engineering**.
+```
+---
