@@ -67,3 +67,24 @@ TLS is terminated at the **Ingress Controller / Gateway**, not at application po
 
 ```
 ---
+## Part 1: Ingress Implementation (NGINX Ingress Controller)
+
+### What Is Demonstrated
+
+- HTTP and HTTPS traffic routing
+- Path-based routing using `/blue` and `/green`
+- TLS termination using Kubernetes Secrets
+- Blue/Green deployment separation at the service level
+---
+### Traffic Flow
+```bash 
+Client → NodePort / LoadBalancer
+      → NGINX Ingress Controller
+      → Service
+      → Pod
+```
+```text
+Ingress resources are declarative only.
+The controller enforces traffic behavior.
+```
+---
