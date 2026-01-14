@@ -1,3 +1,152 @@
+# Kubernetes Blue/Green Sample Web Application Deployment
+
+This repository demonstrates how to deploy a **sample web application** in Kubernetes using two approaches:
+
+1. **NGINX Ingress Controller**  
+2. **Kubernetes Gateway API with NGINX Gateway Fabric**
+
+Both setups route traffic to **Blue** and **Green** deployments and demonstrate **HTTP/HTTPS routing with TLS**, including cross-namespace secret access.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture Diagram](#architecture-diagram)
+- [Prerequisites](#prerequisites)
+- [Part 1: Deploy Sample Web App with NGINX Ingress](#part-1-deploy-sample-web-app-with-nginx-ingress)
+  - [Step 1: Create Namespace](#step-1-create-namespace)
+  - [Step 2: Deploy Green App](#step-2-deploy-green-app)
+  - [Step 3: Deploy Blue App](#step-3-deploy-blue-app)
+  - [Step 4: Create Self-Signed TLS Secret](#step-4-create-self-signed-tls-secret)
+  - [Step 5: Install Helm & NGINX Ingress Controller](#step-5-install-helm--nginx-ingress-controller)
+  - [Step 6: Create Ingress Resource](#step-6-create-ingress-resource)
+  - [Step 7: Test Local Access](#step-7-test-local-access)
+- [Part 2: Deploy with Gateway API](#part-2-deploy-with-gateway-api)
+  - [Step 1: Install Gateway API CRDs](#step-1-install-gateway-api-crds)
+  - [Step 2: Install NGINX Gateway Fabric CRDs](#step-2-install-nginx-gateway-fabric-crds)
+  - [Step 3: Deploy NGINX Gateway Fabric Controller](#step-3-deploy-nginx-gateway-fabric-controller)
+  - [Step 4: Expose Fixed NodePort Values](#step-4-expose-fixed-nodeport-values)
+  - [Step 5: Create GatewayClass](#step-5-create-gatewayclass)
+  - [Step 6: Create Gateway](#step-6-create-gateway)
+  - [Step 7: Create HTTP Routes](#step-7-create-http-routes)
+  - [Step 8: Create HTTPS Routes](#step-8-create-https-routes)
+  - [Step 9: Allow Cross-Namespace TLS Access](#step-9-allow-cross-namespace-tls-access)
+  - [Step 10: Verification](#step-10-verification)
+  - [Step 11: Testing](#step-11-testing)
+- [Troubleshooting](#troubleshooting)
+- [Cleanup](#cleanup)
+- [Notes](#notes)
+
+---
+
+## Overview
+
+This project demonstrates **modern Kubernetes traffic management**:
+
+- Blue/Green application deployments
+- HTTP/HTTPS routing
+- TLS termination at gateway/ingress
+- Cross-namespace secret access using `ReferenceGrant` (Gateway API)
+- NodePort for local testing (can be replaced with LoadBalancer/MetalLB for production)
+
+---
+
+## Architecture Diagram
+       +----------------+
+       |     Client     |
+       +----------------+
+         |        |
+   HTTP :30080  HTTPS :30081
+         |        |
+         v        v
++--------------------------+
+| NGINX Gateway / Ingress |
++--------------------------+
+
+/blue → blue-svc → blue deployment
+/green → green-svc → green deployment
+
+
+- **Ingress:** Routes traffic via path-based rules to services
+- **Gateway API:** Uses Gateway, GatewayClass, HTTPRoute/HTTPSRoute for the same
+
+---
+
+## Prerequisites
+- Kubernetes cluster (v1.26+ recommended)
+- `kubectl` configured
+- `openssl` for self-signed certificates
+- Helm v3+ for NGINX Ingress
+- NodePort access enabled for local testing
+
+---
+
+# Part 1: Deploy Sample Web App with NGINX Ingress
+
+### Step 1: Create Namespace
+
+`namespace.yaml`:
+
+```yaml
+apiVersion: v1 
+kind: Namespace 
+metadata: 
+  name: web-app
+
+kubectl apply -f namespace.yaml
+kubectl get ns
+```
+### Step 2: Deploy Green App
+`green-deployment.yaml`:
+```yaml
+apiVersion: apps/v1 
+kind: Deployment 
+metadata:
+  name: green-deployment
+  namespace: web-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: green-app
+  template:
+    metadata:
+      labels:
+        app: green-app
+    spec:
+      containers:
+      - name: green-container
+        image: gcr.io/google-samples/hello-app:1.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GREETING
+          value: "Hello from the Green App!"
+
+---
+apiVersion: v1 
+kind: Service 
+metadata:
+  name: green-svc
+  namespace: web-app
+spec:
+  selector:
+    app: green-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+```
+```
+kubectl apply -f green-deployment.yaml
+kubectl get pods -n web-app
+kubectl get svc -n web-app
+```
+---
+
+
 # Self Signed Certificate
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout tls.key -out tls.crt \
