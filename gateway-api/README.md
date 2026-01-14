@@ -2,8 +2,7 @@
 
 This repository demonstrates how to deploy a **sample web application** in Kubernetes using two approaches:
 
-1. **NGINX Ingress Controller**  
-2. **Kubernetes Gateway API with NGINX Gateway Fabric**
+ **Kubernetes Gateway API with NGINX Gateway Fabric**
 
 Both setups route traffic to **Blue** and **Green** deployments and demonstrate **HTTP/HTTPS routing with TLS**, including cross-namespace secret access.
 
@@ -11,7 +10,7 @@ Both setups route traffic to **Blue** and **Green** deployments and demonstrate 
 
 ## Table of Contents
 
-- [Part 2: Deploy with Gateway API](#part-2-deploy-with-gateway-api)
+- [Deploy with Gateway API](#deploy-with-gateway-api)
   - [Step 1: Install Gateway API CRDs](#step-1-install-gateway-api-crds)
   - [Step 2: Install NGINX Gateway Fabric CRDs](#step-2-install-nginx-gateway-fabric-crds)
   - [Step 3: Deploy NGINX Gateway Fabric Controller](#step-3-deploy-nginx-gateway-fabric-controller)
